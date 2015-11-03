@@ -24,6 +24,7 @@ function addTests(fPath, markdown, skip) {
         if (!skip && path.basename(fPath)[0] !== '_') {
           it('line ' + line, function () {
             assert.strictEqual(html, markdown.render(md));
+            testInlinePosition(markdown, md);
           });
         } else {
           it.skip('line ' + line, function () {
@@ -40,6 +41,20 @@ function addTests(fPath, markdown, skip) {
     fs.readdirSync(fPath).forEach(function (name) {
       addTests(path.join(fPath, name), markdown, skip);
     });
+  }
+}
+
+function testInlinePosition(markdown, md) {
+  var tokens = markdown.parse(md, {});
+  for (var i = tokens.length - 1; i >= 0; i--) {
+    var token = tokens[i];
+    if (token.type === 'inline') {
+      if (typeof token.pos !== 'undefined') {
+        assert.strictEqual(token.content, md.slice(token.pos[0], token.pos[1]));
+      } else {
+        console.warn('not implemented: ' + token.content);
+      }
+    }
   }
 }
 
