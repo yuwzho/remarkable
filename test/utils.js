@@ -52,7 +52,8 @@ function testInlinePosition(markdown, md) {
       if (typeof token.pos !== 'undefined') {
         if (token.content === '') { continue; }
         var content = token.content;
-        var slice = md.slice(token.pos[0], token.pos[1]);
+        var preprocessedMd = markdown.preprocess(md);
+        var slice = preprocessedMd.slice(token.pos[0], token.pos[1]);
         if (token.trivias) {
           var lines = content.split('\n');
           for (var j = 1; j < lines.length; j++) {
