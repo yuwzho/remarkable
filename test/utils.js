@@ -50,7 +50,20 @@ function testInlinePosition(markdown, md) {
     var token = tokens[i];
     if (token.type === 'inline') {
       if (typeof token.pos !== 'undefined') {
-        assert.strictEqual(token.content, md.slice(token.pos[0], token.pos[1]));
+        if (token.content === '') { continue; }
+        var content = token.content;
+        var slice = md.slice(token.pos[0], token.pos[1]);
+        if (token.trivias) {
+          var lines = content.split('\n');
+          for (var j = 1; j < lines.length; j++) {
+            lines[j] = (token.trivias[j] || '') + lines[j];
+          }
+          content = lines.join('\n');
+        }
+        if (content !== slice) {
+          console.log(token);
+        }
+        assert.strictEqual(content, slice);
       } else {
         console.warn('not implemented: ' + token.content);
       }
