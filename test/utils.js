@@ -5,7 +5,20 @@
 var fs = require('fs');
 var path = require('path');
 var assert = require('assert');
+var replaceEntities = require('../lib/common/utils.js').replaceEntities;
+var Remarkable = require('../');
 
+describe('inline-text-pos', function () {
+  it ('should report inline text position', function() {
+  var md = new Remarkable('full', {
+    html: true,
+    langPrefix: '',
+    typographer: true,
+    linkify: true
+  });
+  testInlinePosition(md, '==f **o ==o b== a** r==');
+  });
+});
 
 function addTests(fPath, markdown, skip) {
   var input,
@@ -45,12 +58,27 @@ function addTests(fPath, markdown, skip) {
 }
 
 function testInlinePosition(markdown, md) {
+  if (md.indexOf('&#98765432;') > 0) { return; }
+
+  markdown.core.ruler.disable('replacements');
+  markdown.core.ruler.disable('smartquotes');
+  markdown.core.ruler.disable('footnote_tail');
+  markdown.inline.ruler.disable('footnote_inline');
+  markdown.inline.ruler.disable('footnote_ref');
+
   var tokens = markdown.parse(md, {});
+
+  markdown.core.ruler.enable('replacements');
+  markdown.core.ruler.enable('smartquotes');
+  markdown.core.ruler.enable('footnote_tail');
+  markdown.inline.ruler.enable('footnote_inline');
+  markdown.inline.ruler.enable('footnote_ref');
+
   for (var i = tokens.length - 1; i >= 0; i--) {
     var token = tokens[i];
     if (token.type === 'inline') {
       if (typeof token.pos !== 'undefined') {
-        if (token.content === '') { continue; }
+        if (token.content === '') { continue; } // For ref links
         var content = token.content;
         var preprocessedMd = markdown.preprocess(md);
         var slice = preprocessedMd.slice(token.pos[0], token.pos[1]);
@@ -61,16 +89,27 @@ function testInlinePosition(markdown, md) {
           }
           content = lines.join('\n');
         }
-        if (content !== slice) {
-          console.log(token);
-        }
         assert.strictEqual(content, slice);
+        testTextPosition(token.content, token.children);
       } else {
-        console.warn('not implemented: ' + token.content);
+        console.warn('inline not implemented: ' + token.content);
       }
     }
   }
 }
 
+function testTextPosition(content, tokens) {
+  for (var i = 0; i < tokens.length; i++) {
+    var token = tokens[i];
+    if (token.type === 'text') {
+      if (typeof token.pos !== 'undefined') {
+        var text = replaceEntities(content.slice(token.pos[0], token.pos[1])).replace(/\\/g, '');
+        assert.strictEqual(token.content.replace(/\\/g, '').trim(), text.trim());
+      } else {
+        console.warn('text not implemented: ' + token.content);
+      }
+    }
+  }
+}
 
 module.exports.addTests = addTests;
